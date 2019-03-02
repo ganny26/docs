@@ -1,0 +1,181 @@
+import Guide from '~/components/layout/guide'
+import { TerminalInput } from '~/components/text/terminal'
+import Card from '~/components/card'
+
+export const meta = {
+  title: 'How to deploy a serverless Node.js application that uses a LRU cache',
+  description:
+    'How to deploy a serverless Node.js application that uses a LRU cache',
+  published: '2019-03-02T13:48:47.143Z',
+  authors: ['ganny26'],
+  url: '/guides/deploying-nodejs-with-lru-cache'
+}
+
+First of all, what is a cache? A cache is a place where frequently-accessed data is stored that can be quickly retrieved with little overhead. Cache is useful when you have a database-driven website that gets high amounts of traffic as it can help reduce the load on your database server by bypassing it completely to retrieve certain data.
+
+When a piece of data is needed, your code first checks to see if it exists in your cache. If the data you need does not exist in the cache, it will then get the data from the database. A copy of that data is then placed in the cache so it will be available there the next time you ask for that particular piece of data. That copy of the data will sometimes have a TTL or (time to live) expiration time. This ensures that data in the cache does not get outdated as updates are made to the original record in the database.
+
+LRU cache stands for "least recently used" cache. This puts a limit on the amount of items you store in the cache your server does not run out of memory as more and more items are stored in the cache. As the limit of items is reached, the LRU cache will start to remove the "least recently used" items in the cache.
+
+In this guide, we will cover how to set up a Node LRU Cache with Express JS App and how to deploy it with [ZEIT Now](/docs/v2).
+
+## Step 1: Installing The LRU Cache Node Module
+
+<TerminalInput>yarn add lru-cache</TerminalInput>
+
+## Step 2: Importing the Module
+
+```js
+const LRU = require('lru-cache')
+
+const options = {
+  max: 5, // The maximum number of items allowed in the cache
+  maxAge: 15000 // The maximum life of a cached item in milliseconds
+}
+
+const cache = new LRU(options)
+```
+
+For demonstration purpouse we only want a maximum of 5 items to be in our cache at any given time and each item can only stay in the cache for 15 seconds.
+
+## Step 3: Install Express JS Module
+
+<TerminalInput>yarn add express</TerminalInput>
+
+## Step 4: Storing and Retrieving Data
+
+Now we can start using our cache to store and retrieve data. Let's create a reusable function so we don't have to write the logic every time we access data.
+
+```js
+function getData(key) {
+  //Check if data is in the cache
+  var data = cache.get(key)
+
+  //When key is not present in cache data is undefined then fetch it again
+  if (!data) {
+    //Get a random user and set it to cache
+    getRandomUser().then(user => {
+      data = user
+      //Store data into cache
+      cache.set(key, data)
+    })
+  }
+  return data
+}
+```
+
+## Step 5: Fetch Random user data from API
+
+<TerminalInput>yarn add node-fetch</TerminalInput>
+
+Create a function that retrives a random user data
+
+```js
+async function getRandomUser() {
+  let res = await fetch('https://randomuser.me/api/')
+  let json = await res.json()
+  return json
+}
+```
+
+## Step 6: Create a get route to fetch data from cache
+
+```js
+app.get('/', (req, res) => {
+  let result =
+    getData('random_user') === undefined
+      ? 'No Data in cache'
+      : getData('random_user')
+  res.status(200).json(result)
+})
+```
+
+Let's say our cache key is `random_user` by passing it to `getData('random_user')` function when key is available it will return user data from cache else fetch random user from API and set it to cache
+
+Complete setup looks like below
+
+```js
+const LRU = require('lru-cache')
+const express = require('express')
+const fetch = require('node-fetch')
+const app = express()
+
+const options = {
+  max: 5, // The maximum number of items allowed in the cache
+  maxAge: 15000 // The maximum life of a cached item in milliseconds
+}
+
+const cache = new LRU(options)
+
+async function getRandomUser() {
+  let res = await fetch('https://randomuser.me/api/')
+  let json = await res.json()
+  return json
+}
+
+function getData(key) {
+  //Check if data is in the cache
+  var data = cache.get(key)
+
+  //When key is not present in cache data is undefined then fetch it again
+  if (!data) {
+    //Get a random user and set it to cache
+    getRandomUser().then(user => {
+      data = user
+      //Store data into cache
+      cache.set(key, data)
+    })
+  }
+  return data
+}
+
+app.get('/', (req, res) => {
+  let result =
+    getData('random_user') === undefined
+      ? 'No Data in cache'
+      : getData('random_user')
+  res.status(200).json(result)
+})
+
+module.exports = app
+```
+
+## Step 7: Deploying with now
+
+If you have not yet installed Now, you can do so by installing the [Now Desktop app](/docs/v2/getting-started/installation/#now-desktop) which installs Now CLI automatically, or by [installing Now CLI](/docs/v2/getting-started/installation/#now-cli) directly.
+
+For the deployment to build and act as you would expect, you will need to create a [`now.json` configuration file](https://zeit.co/docs/v2/deployments/configuration) to instruct Now on how to handle your application in the build phase and when being served to visitors.
+
+```json
+{
+  "version": 2,
+  "name": "nodejs-lrucache-demo",
+  "builds": [{ "src": "**/*.js", "use": "@now/node" }]
+}
+```
+
+## Resources
+
+To configure Now further, please see these additional topics and guides:
+
+<Card title="Deploying Basics" href="/docs/v2/deployments/basics">
+  Deploy any of your applications with ZEIT Now.
+</Card>
+
+<Card
+  title="Aliasing"
+  href="/docs/v2/domains-and-aliases/aliasing-a-deployment/"
+>
+  Learn more about aliasing to your deployments.
+</Card>
+
+<Card title="www. Redirect" href="/guides/redirect-from-www">
+  Create a redirect from the www. subdomain to your naked domain.
+</Card>
+
+<Card title="More Guides" href="/guides">
+  See more guides that help you move forward with your projects and deployments.
+</Card>
+
+export default ({ children }) => <Guide meta={meta}>{children}</Guide
+>
