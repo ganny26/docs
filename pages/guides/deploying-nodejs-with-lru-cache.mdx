@@ -11,17 +11,19 @@ export const meta = {
   url: '/guides/deploying-nodejs-with-lru-cache'
 }
 
+In this guide, we will cover how to set up a Node LRU Cache with Express JS App and how to deploy it with [ZEIT Now](/docs/v2).
+
+# Preface
+
 First of all, what is a cache? A cache is a place where frequently-accessed data is stored that can be quickly retrieved with little overhead. Cache is useful when you have a database-driven website that gets high amounts of traffic as it can help reduce the load on your database server by bypassing it completely to retrieve certain data.
 
-When a piece of data is needed, your code first checks to see if it exists in your cache. If the data you need does not exist in the cache, it will then get the data from the database. A copy of that data is then placed in the cache so it will be available there the next time you ask for that particular piece of data. That copy of the data will sometimes have a TTL or (time to live) expiration time. This ensures that data in the cache does not get outdated as updates are made to the original record in the database.
+When data is requested, your code first checks to see if it exists in your cache. If the requested data does not exist in the cache, it will then get the data from the database. A copy of the data is then placed in the cache so it will be available the next time it is requested. The copy will sometimes have a [TTL](https://en.wikipedia.org/wiki/Time_to_live) or (time to live) expiration time. This ensures that data in the cache does not get outdated as updates are made to the original record in the database.
 
 LRU cache stands for "least recently used" cache. This puts a limit on the amount of items you store in the cache your server does not run out of memory as more and more items are stored in the cache. As the limit of items is reached, the LRU cache will start to remove the "least recently used" items in the cache.
 
-In this guide, we will cover how to set up a Node LRU Cache with Express JS App and how to deploy it with [ZEIT Now](/docs/v2).
+## Step 1: Installing The LRU Cache Node Module and Express
 
-## Step 1: Installing The LRU Cache Node Module
-
-<TerminalInput>yarn add lru-cache</TerminalInput>
+<TerminalInput>yarn add lru-cache yarn add express</TerminalInput>
 
 ## Step 2: Importing the Module
 
@@ -36,15 +38,11 @@ const options = {
 const cache = new LRU(options)
 ```
 
-For demonstration purpouse we only want a maximum of 5 items to be in our cache at any given time and each item can only stay in the cache for 15 seconds.
+For the purpose of demonstration, the application only sets a maximum of 5 items to be in the cache at any given time and each item can only stay in the cache for 15 seconds.
 
-## Step 3: Install Express JS Module
+## Step 3: Storing and Retrieving Data
 
-<TerminalInput>yarn add express</TerminalInput>
-
-## Step 4: Storing and Retrieving Data
-
-Now we can start using our cache to store and retrieve data. Let's create a reusable function so we don't have to write the logic every time we access data.
+Now you can start using the cache to store and retrieve data. Now, create a reusable function so you don't have to write the logic every time you request data.
 
 ```js
 function getData(key) {
@@ -64,11 +62,11 @@ function getData(key) {
 }
 ```
 
-## Step 5: Fetch Random user data from API
+## Step 4: Fetch User Data from the API
 
 <TerminalInput>yarn add node-fetch</TerminalInput>
 
-Create a function that retrives a random user data
+Create a function that retrives some user data
 
 ```js
 async function getRandomUser() {
@@ -78,7 +76,7 @@ async function getRandomUser() {
 }
 ```
 
-## Step 6: Create a get route to fetch data from cache
+## Step 5: Create a `GET` route to fetch data from the cache
 
 ```js
 app.get('/', (req, res) => {
@@ -90,9 +88,9 @@ app.get('/', (req, res) => {
 })
 ```
 
-Let's say our cache key is `random_user` by passing it to `getData('random_user')` function when key is available it will return user data from cache else fetch random user from API and set it to cache
+Let's say the cache key is `random_user`. By passing it to the `getData` function, when the key is available within the cache, it will return user data or fetch the necessary data from the API and cache it for the next request for data under the same key.
 
-Complete setup looks like below
+The complete setup will look like the following:
 
 ```js
 const LRU = require('lru-cache')
@@ -140,7 +138,7 @@ app.get('/', (req, res) => {
 module.exports = app
 ```
 
-## Step 7: Deploying with now
+## Step 6: Deploying with Now
 
 If you have not yet installed Now, you can do so by installing the [Now Desktop app](/docs/v2/getting-started/installation/#now-desktop) which installs Now CLI automatically, or by [installing Now CLI](/docs/v2/getting-started/installation/#now-cli) directly.
 
@@ -177,5 +175,4 @@ To configure Now further, please see these additional topics and guides:
   See more guides that help you move forward with your projects and deployments.
 </Card>
 
-export default ({ children }) => <Guide meta={meta}>{children}</Guide
->
+export default ({ children }) => <Guide meta={meta}>{children}</Guide>
